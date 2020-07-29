@@ -20,42 +20,35 @@ public class CadastroCidadeService {
 	
 	public Cidade salvar(Cidade cidade) {
 		Long idEstado = cidade.getEstado().getId();
-		Estado estado = estadoRepository.buscar(idEstado);
-		
-		if(estado == null) {
-			throw new EntidadeNaoEncontradaException(
-					String.format("Não existe cadastro de estado com o codigo %d", idEstado));			
-		}
+		Estado estado = estadoRepository.findById(idEstado)
+				.orElseThrow(() -> new EntidadeNaoEncontradaException(
+						String.format("Não existe cadastro de estado com o codigo %d", idEstado)));
+	
 		cidade.setEstado(estado);
-		return cidadeRepository.adicionar(cidade);
+		return cidadeRepository.save(cidade);
 	}
 	
 	public Cidade atualizar(Cidade cidade) {
 		Long estadoId = cidade.getEstado().getId();
-		Estado estado = estadoRepository.buscar(estadoId);
 		
-		Cidade cidadeVerificar = cidadeRepository.buscar(cidade.getId());
+		estadoRepository.findById(estadoId)
+				.orElseThrow(() -> new EntidadeNaoEncontradaException(
+						String.format("Não existe cadastro de estado com o codigo %d", estadoId)));
 		
-		if (cidadeVerificar == null) {
-			throw new EntidadeNaoEncontradaException(
-					String.format("Não existe cadastro de cidade com o codigo %d", cidade.getId()));
-		}
-		if(estado == null) {
-			throw new EntidadeNaoEncontradaException(
-				String.format("Não existe cadastro de estado com o codigo %d", estadoId));
-		}
+		cidadeRepository.findById(cidade.getId())
+		.orElseThrow(() -> new EntidadeNaoEncontradaException(
+				String.format("Não existe cadastro de cidade com o codigo %d", cidade.getId())));
 		
-		return cidadeRepository.adicionar(cidade);
+		
+		return cidadeRepository.save(cidade);
 	}
 	
 	public void excluir(Long id) {
-		Cidade cidade = cidadeRepository.buscar(id);
+		cidadeRepository.findById(id)
+		.orElseThrow(() -> new EntidadeNaoEncontradaException(
+				String.format("Não existe cadastro de cidade com o codigo %d", id)));
 		
-		if (cidade == null) {
-			throw new EntidadeNaoEncontradaException(
-					String.format("Não existe cadastro de cidade com o codigo %d", id));
-		}
-		cidadeRepository.remover(id);
+		cidadeRepository.deleteById(id);
 		
 	}
 }
