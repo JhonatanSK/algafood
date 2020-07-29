@@ -1,43 +1,28 @@
 package com.jhonatan.algafood.infrastructure.repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.jhonatan.algafood.domain.model.Restaurante;
-import com.jhonatan.algafood.domain.repository.RestauranteRepository;
+import com.jhonatan.algafood.domain.repository.RestauranteRepositoryQueries;
 
-@Component
-public class RestauranteRepositoryImpl implements RestauranteRepository{
+public class RestauranteRepositoryImpl implements RestauranteRepositoryQueries{
 
 	@PersistenceContext
 	private EntityManager manager;
 	
 	@Override
-	public List<Restaurante> listar() {
-		return manager.createQuery("from Restaurante", Restaurante.class).getResultList();
+	public List<Restaurante> find(String nome, BigDecimal taxaFreteInicial, BigDecimal taxaFretefinal){
+		var jpql = "from Restaurante where nome like :nome "
+				+ "and taxaFrete between :taxaInicial and :taxaFinal";
+		
+		return manager.createQuery(jpql, Restaurante.class)
+				.setParameter("nome", "%" + nome + "%")
+				.setParameter("taxaInicial", taxaFreteInicial)
+				.setParameter("taxaFinal", taxaFretefinal)
+				.getResultList();
 	}
-
-	@Override
-	public Restaurante buscar(Long id) {
-		return manager.find(Restaurante.class, id);
-	}
-
-	@Override
-	@Transactional
-	public Restaurante adicionar(Restaurante restaurante) {
-		return manager.merge(restaurante);
-	}
-
-	@Override
-	@Transactional
-	public void remover(Restaurante restaurante) {
-		restaurante = buscar(restaurante.getId());
-		manager.remove(restaurante);
-	}
-
 }
