@@ -3,6 +3,7 @@ package com.jhonatan.algafood.api.controller;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -35,14 +36,14 @@ public class RestauranteController {
 	
 	@GetMapping
 	public List<Restaurante> listar(){
-		return restauranteRepository.listar();
+		return restauranteRepository.findAll();
 	}
 	
 	@GetMapping("/{id}")
 	public ResponseEntity<Restaurante> buscar(@PathVariable Long id) {
-		Restaurante restaurante = restauranteRepository.buscar(id);
+		Optional<Restaurante> restaurante = restauranteRepository.findById(id);
 		
-		if(restaurante != null) return ResponseEntity.ok(restaurante);
+		if(restaurante.isPresent()) return ResponseEntity.ok(restaurante.get());
 			
 		return ResponseEntity.notFound().build();
 	}
@@ -74,15 +75,13 @@ public class RestauranteController {
 	@PatchMapping("/{restauranteId}")
 	public ResponseEntity<?> atualizarParcial(@PathVariable Long restauranteId,
 			@RequestBody Map<String, Object> campos) {
-		Restaurante restauranteAtual = restauranteRepository.buscar(restauranteId);
+		Optional<Restaurante> restauranteAtual = restauranteRepository.findById(restauranteId);
 		
-		if (restauranteAtual == null) {
-			return ResponseEntity.notFound().build();
-		}
+		if (restauranteAtual.isEmpty()) return ResponseEntity.notFound().build();
 		
-		merge(campos, restauranteAtual);
+		merge(campos, restauranteAtual.get());
 		
-		return atualizar(restauranteAtual, restauranteId);
+		return atualizar(restauranteAtual.get(), restauranteId);
 	}
 	
 	private void merge(Map<String, Object> dadosOrigem, Restaurante restauranteDestino) {
