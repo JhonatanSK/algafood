@@ -3,6 +3,7 @@ package com.jhonatan.algafood.api.controller;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jhonatan.algafood.domain.exception.EntidadeEmUsoException;
@@ -23,69 +23,80 @@ import com.jhonatan.algafood.domain.repository.CidadeRepository;
 import com.jhonatan.algafood.domain.service.CadastroCidadeService;
 
 @RestController
-@RequestMapping("/cidades")
+@RequestMapping(value = "/cidades")
 public class CidadeController {
 
 	@Autowired
-	CidadeRepository cidadeRepository;
+	private CidadeRepository cidadeRepository;
 	
 	@Autowired
-	CadastroCidadeService cadastroCidade;
+	private CadastroCidadeService cadastroCidade;
 	
 	@GetMapping
-	public List<Cidade> listar(){
+	public List<Cidade> listar() {
 		return cidadeRepository.findAll();
 	}
 	
-	@GetMapping("/{id}")
-	public ResponseEntity<Cidade> buscar(@PathVariable Long id){
-		Optional<Cidade> cidade = cidadeRepository.findById(id);
-		if(cidade.isPresent()) return ResponseEntity.ok(cidade.get());
+	@GetMapping("/{cidadeId}")
+	public ResponseEntity<Cidade> buscar(@PathVariable Long cidadeId) {
+		Optional<Cidade> cidade = cidadeRepository.findById(cidadeId);
+		
+		if (cidade != null) {
+			return ResponseEntity.ok(cidade.get());
+		}
 		
 		return ResponseEntity.notFound().build();
 	}
 	
 	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
 	public ResponseEntity<?> adicionar(@RequestBody Cidade cidade) {
 		try {
 			cidade = cadastroCidade.salvar(cidade);
 			
-			return ResponseEntity.status(HttpStatus.CREATED).body(cidade);
-			
-		} catch(EntidadeNaoEncontradaException e) {
-			return ResponseEntity.badRequest().body(e.getMessage());
+			return ResponseEntity.status(HttpStatus.CREATED)
+					.body(cidade);
+		} catch (EntidadeNaoEncontradaException e) {
+			return ResponseEntity.badRequest()
+					.body(e.getMessage());
 		}
 	}
 	
-	@PutMapping("/{id}")
-	public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody Cidade cidade){
+	@PutMapping("/{cidadeId}")
+	public ResponseEntity<?> atualizar(@PathVariable Long cidadeId,
+			@RequestBody Cidade cidade) {
 		try {
-			cidade.setId(id);
-			cidade = cadastroCidade.atualizar(cidade);
+			// Podemos usar o orElse(null) também, que retorna a instância de cidade
+			// dentro do Optional, ou null, caso ele esteja vazio,
+			// mas nesse caso, temos a responsabilidade de tomar cuidado com NullPointerException
+			Cidade cidadeAtual = cidadeRepository.findById(cidadeId).orElse(null);
 			
-			return ResponseEntity.ok(cidade);
-		} catch(EntidadeNaoEncontradaException e) {
-			return ResponseEntity.badRequest().body(e.getMessage());
+			if (cidadeAtual != null) {
+				BeanUtils.copyProperties(cidade, cidadeAtual, "id");
+				
+				cidadeAtual = cadastroCidade.salvar(cidadeAtual);
+				return ResponseEntity.ok(cidadeAtual);
+			}
+			
+			return ResponseEntity.notFound().build();
+		
+		} catch (EntidadeNaoEncontradaException e) {
+			return ResponseEntity.badRequest()
+					.body(e.getMessage());
 		}
 	}
 	
-	@DeleteMapping("/{id}")
-	public ResponseEntity<?> remover(@PathVariable Long id){
+	@DeleteMapping("/{cidadeId}")
+	public ResponseEntity<Cidade> remover(@PathVariable Long cidadeId) {
 		try {
-			cadastroCidade.excluir(id);
+			cadastroCidade.excluir(cidadeId);	
 			return ResponseEntity.noContent().build();
 			
 		} catch (EntidadeNaoEncontradaException e) {
 			return ResponseEntity.notFound().build();
 			
 		} catch (EntidadeEmUsoException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT)
-					.body(e.getMessage());
+			return ResponseEntity.status(HttpStatus.CONFLICT).build();
 		}
 	}
-	
-	
-	
 	
 }
