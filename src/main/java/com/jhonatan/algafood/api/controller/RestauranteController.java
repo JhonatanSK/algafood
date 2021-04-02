@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -60,15 +61,26 @@ public class RestauranteController {
 		}
 	}
 	
-	@PutMapping("/{id}")
-	public ResponseEntity<?> atualizar(@RequestBody Restaurante restaurante, @PathVariable Long id){
+	@PutMapping("/{restauranteId}")
+	public ResponseEntity<?> atualizar(@PathVariable Long restauranteId,
+			@RequestBody Restaurante restaurante) {
 		try {
-			restaurante.setId(id);
-			restaurante = cadastroRestaurante.atualizar(restaurante);
+			Restaurante restauranteAtual = restauranteRepository
+					.findById(restauranteId).orElse(null);
 			
-			return ResponseEntity.ok(restaurante);
-		} catch(EntidadeNaoEncontradaException e) {
-			return ResponseEntity.badRequest().body(e.getMessage());
+			if (restauranteAtual != null) {
+				BeanUtils.copyProperties(restaurante, restauranteAtual, 
+						"id", "formasPagamento");
+				
+				restauranteAtual = cadastroRestaurante.salvar(restauranteAtual);
+				return ResponseEntity.ok(restauranteAtual);
+			}
+			
+			return ResponseEntity.notFound().build();
+		
+		} catch (EntidadeNaoEncontradaException e) {
+			return ResponseEntity.badRequest()
+					.body(e.getMessage());
 		}
 	}
 	
@@ -81,7 +93,7 @@ public class RestauranteController {
 		
 		merge(campos, restauranteAtual.get());
 		
-		return atualizar(restauranteAtual.get(), restauranteId);
+		return atualizar(restauranteId, restauranteAtual.get());
 	}
 	
 	private void merge(Map<String, Object> dadosOrigem, Restaurante restauranteDestino) {
